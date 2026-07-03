@@ -64,14 +64,12 @@
                             </td>
                             <td class="py-4 px-6">
                                 <div class="flex items-center justify-center gap-2">
-                                    {{-- Tombol Edit Terintegrasi Javascript --}}
                                     <button type="button" 
                                             onclick="openEditModal('{{ $tagihan->id_detail ?? $tagihan->id }}', '{{ $tagihan->id_siswa ?? $tagihan->siswa_id }}', '{{ $tagihan->nama_iuran ?? $tagihan->jenis_tagihan }}', '{{ $tagihan->jumlah_bayar ?? $tagihan->nominal }}', '{{ \Carbon\Carbon::parse($tagihan->created_at)->format('Y-m-d') }}', '{{ $tagihan->status_tagihan ?? $tagihan->status }}')"
                                             class="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer">
                                         <i data-lucide="pencil" class="w-4 h-4"></i>
                                     </button>
                                     
-                                    {{-- Form Hapus dengan Konfirmasi Jelas --}}
                                     <form action="/admin/tagihan/{{ $tagihan->id_detail ?? $tagihan->id }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus data tagihan ini beserta detailnya?')">
                                         @csrf
                                         @method('DELETE')
@@ -92,7 +90,6 @@
                             </td>
                         </tr>
                     @endforelse
-                    {{-- Baris Cadangan jika hasil pencarian kosong --}}
                     <tr id="pencarianKosong" class="hidden">
                         <td colspan="6" class="py-12 text-center text-slate-400 font-medium">
                             <div class="flex flex-col items-center justify-center gap-2">
@@ -138,18 +135,18 @@
                 </div>
                 <div>
                     <label class="text-xs font-semibold text-slate-500 block mb-1">Jenis Tagihan</label>
-                    <select name="jenis_tagihan" required class="w-full px-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#1E88E5] focus:bg-white transition-all">
-                        <option value="" disabled selected>-- Pilih Jenis Tagihan --</option>
-                        <option value="Uang Sekolah / Uang Program">Uang Sekolah (Uang Program)</option>
-                        <option value="Uang Ekskul">Uang Ekskul</option>
-                        <option value="Uang POMG">Uang POMG</option>
-                        <option value="Uang MMP">Uang MMP</option>
-                        <option value="Uang SPP / Bulan">Uang SPP / Bulan</option>
+                    <select name="jenis_tagihan" id="buat_jenis_tagihan" required class="w-full px-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#1E88E5] focus:bg-white transition-all">
+                        <option value="" disabled selected data-harga="">-- Pilih Jenis Tagihan --</option>
+                        <option value="Uang Sekolah / Uang Program" data-harga="1000000">Uang Sekolah (Uang Program)</option>
+                        <option value="Uang Ekskul" data-harga="100000">Uang Ekskul</option>
+                        <option value="Uang POMG" data-harga="150000">Uang POMG</option>
+                        <option value="Uang MMP" data-harga="200000">Uang MMP</option>
+                        <option value="Uang SPP / Bulan" data-harga="0">Uang SPP / Bulan</option>
                     </select>
                 </div>
                 <div>
                     <label class="text-xs font-semibold text-slate-500 block mb-1">Nominal (Rupiah)</label>
-                    <input type="number" name="nominal" required placeholder="Contoh: 350000" class="w-full px-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#1E88E5] focus:bg-white transition-all">
+                    <input type="number" name="nominal" id="buat_nominal" required placeholder="Contoh: 350000" class="w-full px-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#1E88E5] focus:bg-white transition-all">
                 </div>
                 <div>
                     <label class="text-xs font-semibold text-slate-500 block mb-1">Tanggal Tagihan Dibuat</label>
@@ -188,11 +185,11 @@
                 <div>
                     <label class="text-xs font-semibold text-slate-500 block mb-1">Jenis Tagihan</label>
                     <select name="jenis_tagihan" id="edit_jenis_tagihan" required class="w-full px-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#1E88E5] focus:bg-white transition-all">
-                        <option value="Uang Sekolah / Uang Program">Uang Sekolah (Uang Program)</option>
-                        <option value="Uang Ekskul">Uang Ekskul</option>
-                        <option value="Uang POMG">Uang POMG</option>
-                        <option value="Uang MMP">Uang MMP</option>
-                        <option value="Uang SPP / Bulan">Uang SPP / Bulan</option>
+                        <option value="Uang Sekolah / Uang Program" data-harga="1000000">Uang Sekolah (Uang Program)</option>
+                        <option value="Uang Ekskul" data-harga="100000">Uang Ekskul</option>
+                        <option value="Uang POMG" data-harga="150000">Uang POMG</option>
+                        <option value="Uang MMP" data-harga="200000">Uang MMP</option>
+                        <option value="Uang SPP / Bulan" data-harga="0">Uang SPP / Bulan</option>
                     </select>
                 </div>
                 <div>
@@ -268,6 +265,42 @@
                     pencarianKosong.classList.add('hidden');
                 }
             });
+
+            // =========================================================================
+            // OTOMATISASI ISI NOMINAL HARGA DI MODAL TAMBAH
+            // =========================================================================
+            const selectJenisBuat = document.getElementById('buat_jenis_tagihan');
+            const inputNominalBuat = document.getElementById('buat_nominal');
+
+            if (selectJenisBuat && inputNominalBuat) {
+                selectJenisBuat.addEventListener('change', function() {
+                    const hargaSelected = this.options[this.selectedIndex].getAttribute('data-harga');
+                    inputNominalBuat.value = hargaSelected;
+
+                    // Jika yang dipilih Uang SPP / Bulan, arahkan fokus ke input agar admin bisa memasukkan harganya secara manual
+                    if (hargaSelected === "0") {
+                        inputNominalBuat.placeholder = "Masukkan nominal SPP...";
+                        inputNominalBuat.focus();
+                    }
+                });
+            }
+
+            // =========================================================================
+            // OTOMATISASI ISI NOMINAL HARGA DI MODAL EDIT
+            // =========================================================================
+            const selectJenisEdit = document.getElementById('edit_jenis_tagihan');
+            const inputNominalEdit = document.getElementById('edit_nominal');
+
+            if (selectJenisEdit && inputNominalEdit) {
+                selectJenisEdit.addEventListener('change', function() {
+                    const hargaSelected = this.options[this.selectedIndex].getAttribute('data-harga');
+                    
+                    // Supaya tidak meng-override nominal lama tanpa sengaja jika user berpindah-pindah jenis saat mengedit
+                    if(hargaSelected !== null) {
+                        inputNominalEdit.value = hargaSelected;
+                    }
+                });
+            }
         });
 
         // Kontrol Modal Edit Terpisah

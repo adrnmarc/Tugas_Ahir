@@ -29,9 +29,14 @@ class TagihanController extends Controller
             'tanggal_tagihan' => 'required|date',
         ]);
 
+        // 1. Ambil data siswa dari database berdasarkan ID yang dipilih dari form dropdown
+        $siswa = Siswa::findOrFail($request->siswa_id);
+
+        // 2. Buat tagihan global dengan menyertakan 'nis' yang diambil dari data siswa
         $tagihanGlobal = Tagihan::create([
             'nama_tagihan' => 'Tagihan ' . $request->jenis_tagihan,
             'jatuh_tempo'  => \Carbon\Carbon::parse($request->tanggal_tagihan)->addMonth()->format('Y-m-d'),
+            'nis'          => $siswa->nis, // <-- Tambahkan baris ini agar kolom 'nis' terisi otomatis dan tidak error
         ]);
 
         DetailTagihan::create([
@@ -54,11 +59,14 @@ class TagihanController extends Controller
             'jenis_tagihan' => 'required|string|max:255',
             'nominal' => 'required|numeric',
             'tanggal_tagihan' => 'required|date',
-            'status_tagihan' => 'required|in:Belum Lunas,Lunas'
+            'status_tagihan' => 'required|in:Belum Lunas,Dicicil,Lunas' // Ditambahkan 'Dicicil' agar sesuai dengan opsi view
         ]);
 
         $detail = DetailTagihan::findOrFail($id);
         
+        // Ambil data siswa jika ada kemungkinan admin mengganti siswa saat edit
+        $siswa = Siswa::findOrFail($request->siswa_id);
+
         $detail->update([
             'id_siswa' => $request->siswa_id,
             'nama_iuran' => $request->jenis_tagihan,
@@ -71,6 +79,7 @@ class TagihanController extends Controller
             $detail->tagihan->update([
                 'nama_tagihan' => 'Tagihan ' . $request->jenis_tagihan,
                 'jatuh_tempo'  => \Carbon\Carbon::parse($request->tanggal_tagihan)->addMonth()->format('Y-m-d'),
+                'nis'          => $siswa->nis, // <-- Perbarui juga nis di induk tagihan jika diubah
             ]);
         }
 

@@ -15,31 +15,36 @@ class SiswaController extends Controller
 
     public function store(Request $request)
     {
-        // 1. Validasi inputan 
+        // 1. Validasi inputan (Mengunci NIS wajib angka)
         $request->validate([
-            'nis'           => 'required|string|unique:siswas,nis',
-            'nama'          => 'required|string|max:255',
-            'kelas'         => 'required|string',
-            'wali'          => 'required|string|max:255',
-            'kontak'        => 'required|string|max:20',
+            'nis' => 'required|numeric|unique:siswas,nis', // Menggunakan numeric agar menolak huruf
+            'nama' => 'required|string|max:255',
+            'kelas' => 'required|string',
+            'wali' => 'required|string|max:255',
+            'kontak' => 'required|string|max:20',
             'nama_orangtua' => 'required|string|max:255',
             'jenis_kelamin' => 'required|string',
             'tanggal_lahir' => 'nullable|date',
-            'alamat'        => 'nullable|string',
+            'alamat' => 'nullable|string',
+        ], [
+            // Kustomisasi Pesan Error dalam Bahasa Indonesia
+            'nis.required' => 'Nomor Induk Siswa (NIS) wajib diisi!',
+            'nis.numeric' => 'Input Gagal! NIS harus berupa angka penuh, tidak boleh mengandung huruf.',
+            'nis.unique' => 'Nomor NIS ini sudah terdaftar di data siswa TK Mutiara Bogor.',
         ]);
 
         // 2. Simpan data baru
         Siswa::create([
-            'nis'           => $request->nis,
-            'nama'          => $request->nama,
-            'kelas'         => $request->kelas,
-            'wali'          => $request->wali,
-            'kontak'        => $request->kontak,
+            'nis' => $request->nis,
+            'nama' => $request->nama,
+            'kelas' => $request->kelas,
+            'wali' => $request->wali,
+            'kontak' => $request->kontak,
             'nama_orangtua' => $request->nama_orangtua,
             'jenis_kelamin' => $request->jenis_kelamin,
             'tanggal_lahir' => $request->tanggal_lahir,
-            'alamat'        => $request->alamat,
-            'password'      => bcrypt($request->nis), 
+            'alamat' => $request->alamat,
+            'password' => bcrypt($request->nis),
         ]);
 
         return redirect('/admin/siswa')->with('sukses', 'Data siswa berhasil dibuat!');
@@ -48,31 +53,36 @@ class SiswaController extends Controller
     public function update(Request $request, $id)
     {
         $siswa = Siswa::findOrFail($id);
-        
-        // 1. Validasi update
+
+        // 1. Validasi update (Mengunci NIS wajib angka)
         $request->validate([
-            'nis'           => 'required|string|unique:siswas,nis,' . $id,
-            'nama'          => 'required|string|max:255',
-            'kelas'         => 'required|string',
-            'wali'          => 'required|string|max:255',
-            'kontak'        => 'required|string|max:20',
+            'nis' => 'required|numeric|unique:siswas,nis,' . $id, // Menggunakan numeric agar menolak huruf
+            'nama' => 'required|string|max:255',
+            'kelas' => 'required|string',
+            'wali' => 'required|string|max:255',
+            'kontak' => 'required|string|max:20',
             'nama_orangtua' => 'required|string|max:255',
             'jenis_kelamin' => 'required|string',
             'tanggal_lahir' => 'nullable|date',
-            'alamat'        => 'nullable|string',
+            'alamat' => 'nullable|string',
+        ], [
+            // Kustomisasi Pesan Error dalam Bahasa Indonesia
+            'nis.required' => 'Nomor Induk Siswa (NIS) wajib diisi!',
+            'nis.numeric' => 'Input Gagal! NIS harus berupa angka penuh, tidak boleh mengandung huruf.',
+            'nis.unique' => 'Nomor NIS ini sudah digunakan oleh siswa lain.',
         ]);
 
         // 2. Update data
         $siswa->update([
-            'nis'           => $request->nis,
-            'nama'          => $request->nama,
-            'kelas'         => $request->kelas,
-            'wali'          => $request->wali,
-            'kontak'        => $request->kontak,
+            'nis' => $request->nis,
+            'nama' => $request->nama,
+            'kelas' => $request->kelas,
+            'wali' => $request->wali,
+            'kontak' => $request->kontak,
             'nama_orangtua' => $request->nama_orangtua,
             'jenis_kelamin' => $request->jenis_kelamin,
             'tanggal_lahir' => $request->tanggal_lahir,
-            'alamat'        => $request->alamat,
+            'alamat' => $request->alamat,
         ]);
 
         return redirect('/admin/siswa')->with('sukses', 'Data siswa berhasil diperbarui!');

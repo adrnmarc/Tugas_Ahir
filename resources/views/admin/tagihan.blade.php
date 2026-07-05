@@ -12,6 +12,21 @@
         </div>
     @endif
 
+    {{-- KOTAK NOTIFIKASI VALIDASI GAGAL --}}
+    @if($errors->any())
+        <div class="mb-4 p-4 text-sm text-rose-800 bg-rose-50 rounded-xl border border-rose-100 font-semibold">
+            <div class="flex items-center gap-2 mb-2">
+                <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600"></i>
+                <span>Gagal Menyimpan Data! Periksa kembali inputan Anda:</span>
+            </div>
+            <ul class="list-disc pl-5 font-medium text-xs space-y-1 text-rose-700">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <div class="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-4 rounded-2xl border border-slate-100 shadow-xs mb-6">
         <div class="relative w-full sm:w-80">
             <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
@@ -46,17 +61,17 @@
                     @forelse($tagihans as $tagihan)
                         <tr class="baris-data hover:bg-slate-50/50 transition-colors">
                             <td class="py-4 px-6 text-slate-900 font-semibold kolom-siswa">{{ $tagihan->siswa->nama ?? 'Tidak Diketahui' }}</td>
-                            <td class="py-4 px-6 kolom-jenis">{{ $tagihan->nama_iuran ?? $tagihan->jenis_tagihan }}</td>
+                            <td class="py-4 px-6 kolom-jenis">{{ $tagihan->nama_tagihan ?? $tagihan->jenis_tagihan }}</td>
                             <td class="py-4 px-6 text-xs text-slate-400 font-normal">
-                                {{ \Carbon\Carbon::parse($tagihan->created_at)->format('d M Y') }}
+                                {{ \Carbon\Carbon::parse($tagihan->jatuh_tempo ?? $tagihan->created_at)->format('d M Y') }}
                             </td>
                             <td class="py-4 px-6 text-slate-900 font-semibold">
-                                Rp {{ number_format($tagihan->jumlah_bayar ?? $tagihan->nominal, 0, ',', '.') }}
+                                Rp {{ number_format($tagihan->nominal, 0, ',', '.') }}
                             </td>
                             <td class="py-4 px-6">
-                                @if(($tagihan->status_tagihan ?? $tagihan->status) == 'Lunas')
+                                @if(($tagihan->status) == 'Lunas')
                                     <span class="px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-lg border border-emerald-100">Lunas</span>
-                                @elseif(($tagihan->status_tagihan ?? $tagihan->status) == 'Dicicil')
+                                @elseif(($tagihan->status) == 'Dicicil')
                                     <span class="px-2.5 py-1 text-xs font-semibold text-amber-700 bg-amber-50 rounded-lg border border-amber-100">Dicicil</span>
                                 @else
                                     <span class="px-2.5 py-1 text-xs font-semibold text-rose-700 bg-rose-50 rounded-lg border border-rose-100">Belum Lunas</span>
@@ -64,13 +79,14 @@
                             </td>
                             <td class="py-4 px-6">
                                 <div class="flex items-center justify-center gap-2">
+                                    {{-- Mengirim parameter $tagihan->nis ke JavaScript modal edit --}}
                                     <button type="button" 
-                                            onclick="openEditModal('{{ $tagihan->id_detail ?? $tagihan->id }}', '{{ $tagihan->id_siswa ?? $tagihan->siswa_id }}', '{{ $tagihan->nama_iuran ?? $tagihan->jenis_tagihan }}', '{{ $tagihan->jumlah_bayar ?? $tagihan->nominal }}', '{{ \Carbon\Carbon::parse($tagihan->created_at)->format('Y-m-d') }}', '{{ $tagihan->status_tagihan ?? $tagihan->status }}')"
+                                            onclick="openEditModal('{{ $tagihan->id_tagihan }}', '{{ $tagihan->nis }}', '{{ $tagihan->nama_tagihan }}', '{{ $tagihan->nominal }}', '{{ \Carbon\Carbon::parse($tagihan->jatuh_tempo)->format('Y-m-d') }}', '{{ $tagihan->status }}')"
                                             class="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer">
                                         <i data-lucide="pencil" class="w-4 h-4"></i>
                                     </button>
                                     
-                                    <form action="/admin/tagihan/{{ $tagihan->id_detail ?? $tagihan->id }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus data tagihan ini beserta detailnya?')">
+                                    <form action="/admin/tagihan/{{ $tagihan->id_tagihan }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus data tagihan ini?')">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer">
@@ -129,7 +145,8 @@
                     <select name="siswa_id" required class="w-full px-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#1E88E5] focus:bg-white transition-all">
                         <option value="">-- Pilih Anak Didik --</option>
                         @foreach($daftarSiswa as $siswa)
-                            <option value="{{ $siswa->id }}">{{ $siswa->nama }} ({{ $siswa->kelas }})</option>
+                            {{-- Value dikunci menggunakan $siswa->nis agar sinkron ke database --}}
+                            <option value="{{ $siswa->nis }}">{{ $siswa->nama }} ({{ $siswa->kelas }})</option>
                         @endforeach
                     </select>
                 </div>
@@ -178,7 +195,8 @@
                     <label class="text-xs font-semibold text-slate-500 block mb-1">Pilih Siswa</label>
                     <select name="siswa_id" id="edit_siswa_id" required class="w-full px-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#1E88E5] focus:bg-white transition-all">
                         @foreach($daftarSiswa as $siswa)
-                            <option value="{{ $siswa->id }}">{{ $siswa->nama }} ({{ $siswa->kelas }})</option>
+                            {{-- Value dikunci menggunakan $siswa->nis agar sinkron ke database --}}
+                            <option value="{{ $siswa->nis }}">{{ $siswa->nama }} ({{ $siswa->kelas }})</option>
                         @endforeach
                     </select>
                 </div>
@@ -258,7 +276,6 @@
                     }
                 });
 
-                // Tampilkan pesan kosong jika tidak ada baris yang cocok
                 if (!adaDataCocok && filter !== "") {
                     pencarianKosong.classList.remove('hidden');
                 } else {
@@ -266,9 +283,7 @@
                 }
             });
 
-            // =========================================================================
-            // OTOMATISASI ISI NOMINAL HARGA DI MODAL TAMBAH
-            // =========================================================================
+            // Otomatisasi Nominal Harga di Modal Tambah
             const selectJenisBuat = document.getElementById('buat_jenis_tagihan');
             const inputNominalBuat = document.getElementById('buat_nominal');
 
@@ -277,7 +292,6 @@
                     const hargaSelected = this.options[this.selectedIndex].getAttribute('data-harga');
                     inputNominalBuat.value = hargaSelected;
 
-                    // Jika yang dipilih Uang SPP / Bulan, arahkan fokus ke input agar admin bisa memasukkan harganya secara manual
                     if (hargaSelected === "0") {
                         inputNominalBuat.placeholder = "Masukkan nominal SPP...";
                         inputNominalBuat.focus();
@@ -285,28 +299,35 @@
                 });
             }
 
-            // =========================================================================
-            // OTOMATISASI ISI NOMINAL HARGA DI MODAL EDIT
-            // =========================================================================
+            // Otomatisasi Nominal Harga di Modal Edit
             const selectJenisEdit = document.getElementById('edit_jenis_tagihan');
             const inputNominalEdit = document.getElementById('edit_nominal');
 
             if (selectJenisEdit && inputNominalEdit) {
                 selectJenisEdit.addEventListener('change', function() {
                     const hargaSelected = this.options[this.selectedIndex].getAttribute('data-harga');
-                    
-                    // Supaya tidak meng-override nominal lama tanpa sengaja jika user berpindah-pindah jenis saat mengedit
                     if(hargaSelected !== null) {
                         inputNominalEdit.value = hargaSelected;
                     }
                 });
             }
+
+            // FILTER ANTI-HURUF & KARAKTER STRANGE DI INPUT NOMINAL
+            [inputNominalBuat, inputNominalEdit].forEach(input => {
+                if(input) {
+                    input.addEventListener('keydown', function(e) {
+                        if (['e', 'E', '-', '+', ',', '.'].includes(e.key)) {
+                            e.preventDefault();
+                        }
+                    });
+                }
+            });
         });
 
         // Kontrol Modal Edit Terpisah
-        function openEditModal(id, siswaId, jenis, nominal, tanggal, status) {
+        function openEditModal(id, nis, jenis, nominal, tanggal, status) {
             document.getElementById('formEditTagihan').action = '/admin/tagihan/' + id;
-            document.getElementById('edit_siswa_id').value = siswaId;
+            document.getElementById('edit_siswa_id').value = nis;
             document.getElementById('edit_jenis_tagihan').value = jenis;
             document.getElementById('edit_nominal').value = nominal;
             document.getElementById('edit_tanggal_tagihan').value = tanggal;

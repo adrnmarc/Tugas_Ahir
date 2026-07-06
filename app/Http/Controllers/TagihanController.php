@@ -5,75 +5,130 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Tagihan;
 use App\Models\Siswa;
+use App\Models\DetailTagihan;
 
 class TagihanController extends Controller
 {
-    // 1. TAMPILKAN HALAMAN UTAMA
+    /**
+     * Menampilkan daftar tagihan
+     */
     public function index()
     {
-        $tagihans = Tagihan::with('siswa')->latest()->get();
-        // Mengambil daftar siswa untuk dropdown select modal
-        $daftarSiswa = Siswa::orderBy('nama', 'asc')->get();
+        $tagihans = Tagihan::with([
+            'siswa',
+            'detailTagihan'
+        ])
+        ->latest()
+        ->get();
 
-        return view('admin.tagihan', compact('tagihans', 'daftarSiswa'));
+        $daftarSiswa = Siswa::orderBy('nama')->get();
+
+        return view('admin.tagihan', compact(
+            'tagihans',
+            'daftarSiswa'
+        ));
     }
 
-    // 2. SIMPAN TAGIHAN BARU (Validasi ketat menolak string pada NIS)
+    /**
+     * Simpan tagihan baru
+     */
     public function store(Request $request)
     {
         $request->validate([
-            // Validasi: Harus berupa nomor angka (integer) dan harus ada di kolom nis tabel siswas
-            'siswa_id'        => 'required|integer|exists:siswas,nis', 
-            'jenis_tagihan'   => 'required|string',
-            'nominal'         => 'required|integer', // Memastikan input nominal tidak disisipi string huruf
+            'siswa_id' => 'required|exists:siswas,nis',
+            'jenis_tagihan' => 'required|string|max:255',
+            'nominal' => 'required|numeric|min:1',
             'tanggal_tagihan' => 'required|date',
-        ], [
-            'siswa_id.required' => 'Anak didik wajib dipilih!',
-            'siswa_id.integer'  => 'Format NIS harus berupa nomor angka bulat.',
-            'siswa_id.exists'   => 'Nomor NIS siswa tidak terdaftar di sistem.',
-            'nominal.integer'   => 'Nominal tagihan harus berupa angka bulat, tidak boleh string huruf.',
         ]);
 
-        // Simpan menggunakan struktur kolom asli database Anda
-        Tagihan::create([
-            'nis'          => $request->siswa_id, // Di form blade Anda, name-nya 'siswa_id' tapi isinya dioper ke kolom 'nis'
+        $siswa = Siswa::where('nis', $request->siswa_id)->firstOrFail();
+
+        // simpan tabel tagihans
+        $tagihan = Tagihan::create([
+            'nis' => $siswa->nis,
             'nama_tagihan' => $request->jenis_tagihan,
-            'jatuh_tempo'  => $request->tanggal_tagihan,
+            'jatuh_tempo' => $request->tanggal_tagihan,
         ]);
 
-        return redirect()->back()->with('sukses', 'Tagihan baru berhasil disimpan!');
+        // simpan detail tagihan
+        DetailTagihan::create([
+            'id_tagihan' => $tagihan->id_tagihan,
+            'id_siswa' => $siswa->id,
+            'nama_iuran' => $request->jenis_tagihan,
+            'jumlah_bayar' => $request->nominal,
+            'status_tagihan' => 'Belum Lunas',
+        ]);
+
+        return redirect()
+            ->back()
+            ->with('sukses', 'Tagihan berhasil ditambahkan.');
     }
 
-    // 3. EDIT DATA TAGIHAN
+    /**
+     * Update tagihan
+     */
     public function update(Request $request, $id_tagihan)
     {
         $request->validate([
-            'siswa_id'        => 'required|integer|exists:siswas,nis',
-            'jenis_tagihan'   => 'required|string',
-            'nominal'         => 'required|integer',
+            'siswa_id' => 'required|exists:siswas,nis',
+            'jenis_tagihan' => 'required|string|max:255',
+            'nominal' => 'required|numeric|min:1',
             'tanggal_tagihan' => 'required|date',
-        ], [
-            'siswa_id.exists' => 'Nomor NIS siswa tidak ditemukan.',
-            'nominal.integer' => 'Nominal harus berupa angka.',
+            'status_tagihan' => 'required'
         ]);
 
         $tagihan = Tagihan::findOrFail($id_tagihan);
-        
+
+        $siswa = Siswa::where('nis', $request->siswa_id)->firstOrFail();
+
         $tagihan->update([
-            'nis'          => $request->siswa_id,
+            'nis' => $siswa->nis,
             'nama_tagihan' => $request->jenis_tagihan,
-            'jatuh_tempo'  => $request->tanggal_tagihan,
+            'jatuh_tempo' => $request->tanggal_tagihan,
         ]);
 
-        return redirect()->back()->with('sukses', 'Data tagihan berhasil diperbarui!');
+        $detail = DetailTagihan::where(
+            'id_tagihan',
+            $tagihan->id_tagihan
+        )->first();
+
+        if ($detail) {
+
+            $detail->update([
+
+                'id_siswa' => $siswa->id,
+
+                'nama_iuran' => $request->jenis_tagihan,
+
+                'jumlah_bayar' => $request->nominal,
+
+                'status_tagihan' => $request->status_tagihan
+
+            ]);
+
+        }
+
+        return redirect()
+            ->back()
+            ->with('sukses', 'Tagihan berhasil diperbarui.');
     }
 
-    // 4. HAPUS DATA TAGIHAN
+    /**
+     * Hapus tagihan
+     */
     public function destroy($id_tagihan)
     {
         $tagihan = Tagihan::findOrFail($id_tagihan);
+
+        DetailTagihan::where(
+            'id_tagihan',
+            $tagihan->id_tagihan
+        )->delete();
+
         $tagihan->delete();
 
-        return redirect()->back()->with('sukses', 'Tagihan berhasil dihapus!');
+        return redirect()
+            ->back()
+            ->with('sukses', 'Tagihan berhasil dihapus.');
     }
 }

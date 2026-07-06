@@ -10,15 +10,36 @@ class Tagihan extends Model
     use HasFactory;
 
     protected $table = 'tagihans';
+
     protected $primaryKey = 'id_tagihan';
 
-    protected $fillable = ['nama_tagihan', 'jatuh_tempo', 'nis'];
+    public $incrementing = true;
+
+    protected $fillable = [
+        'nama_tagihan',
+        'jatuh_tempo',
+        'nis',
+    ];
 
     /**
-     * Relasi ke DetailTagihan (One to Many)
+     * Relasi ke tabel siswa
+     * tagihans.nis -> siswas.nis
+     */
+    public function siswa()
+    {
+        return $this->belongsTo(Siswa::class, 'nis', 'nis');
+    }
+
+    /**
+     * Relasi ke detail tagihan
+     * Satu tagihan memiliki satu detail tagihan
      */
     public function detailTagihan()
     {
-        return $this->hasMany(DetailTagihan::class, 'id_tagihan', 'id_tagihan');
+        return $this->hasOne(
+            DetailTagihan::class,
+            'id_tagihan',
+            'id_tagihan'
+        );
     }
 }

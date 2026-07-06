@@ -9,38 +9,75 @@ class DetailTagihan extends Model
 {
     use HasFactory;
 
-    protected $table = 'detail_tagihans'; 
+    protected $table = 'detail_tagihans';
+
     protected $primaryKey = 'id_detail';
+
     public $incrementing = true;
 
     protected $fillable = [
         'id_tagihan',
         'id_siswa',
-        'nama_iuran',   
-        'jumlah_bayar',   
-        'bukti_bayar',
+        'nama_iuran',
+        'jumlah_bayar',
         'status_tagihan',
-        'created_at',
+        'bukti_bayar',
     ];
 
     /**
-     * Relasi ke Pembayaran (One to Many)
-     * Menghubungkan detail tagihan dengan riwayat cicilan di tabel pembayarans
+     * Relasi ke Tagihan
+     * detail_tagihans.id_tagihan -> tagihans.id_tagihan
+     */
+    public function tagihan()
+    {
+        return $this->belongsTo(
+            Tagihan::class,
+            'id_tagihan',
+            'id_tagihan'
+        );
+    }
+
+    /**
+     * Relasi ke Siswa
+     * detail_tagihans.id_siswa -> siswas.id
+     */
+    public function siswa()
+    {
+        return $this->belongsTo(
+            Siswa::class,
+            'id_siswa',
+            'id'
+        );
+    }
+
+    /**
+     * Relasi ke Pembayaran
      */
     public function pembayaran()
     {
-        // Parameter ke-2: foreign key di tabel pembayarans ('id_detail')
-        // Parameter ke-3: local key di tabel detail_tagihans ('id_detail')
-        return $this->hasMany(Pembayaran::class, 'id_detail', 'id_detail');
+        return $this->hasMany(
+            Pembayaran::class,
+            'id_detail',
+            'id_detail'
+        );
     }
 
-    public function siswa()
+    /**
+     * Total pembayaran yang sudah masuk
+     */
+    public function getTotalDibayarAttribute()
     {
-        return $this->belongsTo(Siswa::class, 'id_siswa', 'id');
+        return $this->pembayaran()->sum('jumlah_bayar');
     }
 
-    public function tagihan()
+    /**
+     * Sisa tagihan
+     */
+    public function getSisaTagihanAttribute()
     {
-        return $this->belongsTo(Tagihan::class, 'id_tagihan', 'id_tagihan');
+        return max(
+            0,
+            $this->jumlah_bayar - $this->total_dibayar
+        );
     }
 }

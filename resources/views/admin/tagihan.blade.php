@@ -60,31 +60,48 @@
                 <tbody class="text-sm font-medium text-slate-600 divide-y divide-slate-100">
                     @forelse($tagihans as $tagihan)
                         <tr class="baris-data hover:bg-slate-50/50 transition-colors">
-                            <td class="py-4 px-6 text-slate-900 font-semibold kolom-siswa">{{ $tagihan->siswa->nama ?? 'Tidak Diketahui' }}</td>
-                            <td class="py-4 px-6 kolom-jenis">{{ $tagihan->nama_tagihan ?? $tagihan->jenis_tagihan }}</td>
+                            <td class="py-4 px-6 text-slate-900 font-semibold kolom-siswa">{{ optional($tagihan->siswa)->nama ?? 'Tidak Diketahui' }}</td>
+                            <td class="py-4 px-6 kolom-jenis">{{ $tagihan->nama_tagihan }}</td>
                             <td class="py-4 px-6 text-xs text-slate-400 font-normal">
                                 {{ \Carbon\Carbon::parse($tagihan->jatuh_tempo ?? $tagihan->created_at)->format('d M Y') }}
                             </td>
                             <td class="py-4 px-6 text-slate-900 font-semibold">
-                                Rp {{ number_format($tagihan->nominal, 0, ',', '.') }}
+                                Rp {{ number_format(optional($tagihan->detailTagihan)->jumlah_bayar ?? 0, 0, ',', '.') }}
                             </td>
                             <td class="py-4 px-6">
-                                @if(($tagihan->status) == 'Lunas')
-                                    <span class="px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-lg border border-emerald-100">Lunas</span>
-                                @elseif(($tagihan->status) == 'Dicicil')
-                                    <span class="px-2.5 py-1 text-xs font-semibold text-amber-700 bg-amber-50 rounded-lg border border-amber-100">Dicicil</span>
-                                @else
-                                    <span class="px-2.5 py-1 text-xs font-semibold text-rose-700 bg-rose-50 rounded-lg border border-rose-100">Belum Lunas</span>
-                                @endif
-                            </td>
+    @php
+        $status = optional($tagihan->detailTagihan)->status_tagihan ?? 'Belum Lunas';
+    @endphp
+
+    @if($status == 'Lunas')
+        <span class="px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-lg border border-emerald-100">
+            Lunas
+        </span>
+    @elseif($status == 'Dicicil')
+        <span class="px-2.5 py-1 text-xs font-semibold text-amber-700 bg-amber-50 rounded-lg border border-amber-100">
+            Dicicil
+        </span>
+    @else
+        <span class="px-2.5 py-1 text-xs font-semibold text-rose-700 bg-rose-50 rounded-lg border border-rose-100">
+            Belum Lunas
+        </span>
+    @endif
+</td>
                             <td class="py-4 px-6">
                                 <div class="flex items-center justify-center gap-2">
                                     {{-- Mengirim parameter $tagihan->nis ke JavaScript modal edit --}}
-                                    <button type="button" 
-                                            onclick="openEditModal('{{ $tagihan->id_tagihan }}', '{{ $tagihan->nis }}', '{{ $tagihan->nama_tagihan }}', '{{ $tagihan->nominal }}', '{{ \Carbon\Carbon::parse($tagihan->jatuh_tempo)->format('Y-m-d') }}', '{{ $tagihan->status }}')"
-                                            class="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer">
-                                        <i data-lucide="pencil" class="w-4 h-4"></i>
-                                    </button>
+                                    <button type="button"
+    onclick="openEditModal(
+        '{{ $tagihan->id_tagihan }}',
+        '{{ $tagihan->nis }}',
+        '{{ $tagihan->nama_tagihan }}',
+        '{{ optional($tagihan->detailTagihan)->jumlah_bayar ?? 0 }}',
+        '{{ \Carbon\Carbon::parse($tagihan->jatuh_tempo)->format('Y-m-d') }}',
+        '{{ optional($tagihan->detailTagihan)->status_tagihan ?? "Belum Lunas" }}'
+    )"
+    class="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer">
+    <i data-lucide="pencil" class="w-4 h-4"></i>
+</button>
                                     
                                     <form action="/admin/tagihan/{{ $tagihan->id_tagihan }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus data tagihan ini?')">
                                         @csrf

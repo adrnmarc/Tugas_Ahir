@@ -9,10 +9,14 @@ use App\Http\Controllers\{
 use App\Http\Middleware\CheckAdminLogin;
 
 // --- 1. LANDING PAGE ---
-Route::get('/', function () { 
-    return view('layouts.landing'); 
-});
+use App\Models\Pengumuman;
 
+Route::get('/', function () {
+
+    $pengumuman = Pengumuman::latest()->take(5)->get();
+
+    return view('layouts.landing', compact('pengumuman'));
+});
 // --- 2. LOGIN AUTHENTICATION ---
 // Login Admin
 Route::get('/login', function () { return view('admin.login'); });

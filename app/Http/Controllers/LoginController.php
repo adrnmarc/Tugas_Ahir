@@ -23,21 +23,29 @@ class LoginController extends Controller
 
 public function loginOrtu(Request $request)
 {
-    $request->validate(['nis' => 'required', 'password' => 'required']);
+    $request->validate([
+        'nis' => 'required',
+        'password' => 'required'
+    ]);
 
     $siswa = Siswa::where('nis', $request->nis)->first();
-    
-    if ($siswa && Hash::check($request->password, $siswa->password)) {
-        session([
-            'is_logged_in' => true,
-            'role' => 'orang_tua',
-            'siswa_id' => $siswa->id,
-            'nis' => $siswa->nis
-        ]);
-        return redirect('/ortu/dashboard');
+
+    if (!$siswa) {
+        return back()->with('gagal', 'NIS atau Password salah!');
     }
 
-    return back()->with('gagal', 'NIS atau Password salah!');
+    if (!Hash::check($request->password, $siswa->password)) {
+        return back()->with('gagal', 'NIS atau Password salah!');
+    }
+
+    session([
+        'is_logged_in' => true,
+        'role' => 'orang_tua',
+        'siswa_id' => $siswa->id,
+        'nis' => $siswa->nis,
+    ]);
+
+    return redirect('/ortu/dashboard');
 }
 
     public function logout(Request $request)

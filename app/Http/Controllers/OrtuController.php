@@ -4,75 +4,158 @@ namespace App\Http\Controllers;
 
 use App\Models\Siswa;
 use App\Models\DetailTagihan;
+use App\Models\Pengumuman;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class OrtuController extends Controller
 {
-   public function dashboard()
-{
-    $siswa_id = session('siswa_id');
+    /**
+     * Dashboard Orang Tua
+     */
+    public function dashboard()
+    {
+        $siswaId = session('siswa_id');
 
-    $siswa = \App\Models\Siswa::find($siswa_id);
+        if (!$siswaId) {
+            return redirect('/login-ortu');
+        }
 
-    // Logika transaksi
-    $totalBayar = \App\Models\DetailTagihan::where('id_siswa', $siswa_id)
-        ->where('status_tagihan', 'Lunas')
-        ->sum('jumlah_bayar');
+        $siswa = Siswa::findOrFail($siswaId);
 
-    $jumlahTransaksi = \App\Models\DetailTagihan::where('id_siswa', $siswa_id)->count();
-    $riwayat = \App\Models\DetailTagihan::where('id_siswa', $siswa_id)->latest()->get();
-    $pengumuman = \App\Models\Pengumuman::latest()->take(3)->get();
+        // Riwayat pembayaran
+        $riwayat = DetailTagihan::where('id_siswa', $siswaId)
+            ->latest()
+            ->get();
 
-    // Kirim data ke view
-    return view('ortu.dashboard', compact('totalBayar', 'jumlahTransaksi', 'riwayat', 'siswa', 'pengumuman'));
-}
+        // Statistik
+        $jumlahTransaksi = $riwayat->count();
 
+        $totalBayar = DetailTagihan::where('id_siswa', $siswaId)
+            ->where('status_tagihan', 'Lunas')
+            ->sum('jumlah_bayar');
+
+        $jumlahLunas = DetailTagihan::where('id_siswa', $siswaId)
+            ->where('status_tagihan', 'Lunas')
+            ->count();
+
+        $jumlahBelumLunas = DetailTagihan::where('id_siswa', $siswaId)
+            ->where('status_tagihan', '!=', 'Lunas')
+            ->count();
+
+        $totalTagihan = DetailTagihan::where('id_siswa', $siswaId)
+            ->sum('jumlah_bayar');
+
+        $pengumuman = Pengumuman::latest()
+            ->take(5)
+            ->get();
+
+        return view('ortu.dashboard', compact(
+            'siswa',
+            'riwayat',
+            'pengumuman',
+            'jumlahTransaksi',
+            'totalBayar',
+            'jumlahLunas',
+            'jumlahBelumLunas',
+            'totalTagihan'
+        ));
+    }
+
+    /**
+     * Halaman Tagihan
+     */
     public function tagihan()
     {
         $siswaId = session('siswa_id');
-        $tagihans = \App\Models\DetailTagihan::where('id_siswa', $siswaId)->get();
+
+        if (!$siswaId) {
+            return redirect('/login-ortu');
+        }
+
+        $tagihans = DetailTagihan::where('id_siswa', $siswaId)
+            ->latest()
+            ->get();
+
         return view('ortu.tagihan', compact('tagihans'));
     }
 
-    // Fungsi untuk menampilkan form upload
+    /**
+     * Form Upload Bukti Pembayaran
+     */
     public function formBayar($id)
     {
         $tagihan = DetailTagihan::findOrFail($id);
+
         return view('ortu.bayar', compact('tagihan'));
     }
 
-   public function prosesBayar(Request $request, $id) 
-{
-    // Cek apakah file terkirim
-    if (!$request->hasFile('bukti')) {
-        die("Error: File tidak ditemukan di request!");
-    }
-
-    $tagihan = \App\Models\DetailTagihan::where('id_detail', $id)->first();
-    
-    if (!$tagihan) {
-        die("Error: Data tagihan dengan ID $id tidak ditemukan di database!");
-    }
-
-    // Simpan file
-    $path = $request->file('bukti')->store('bukti_bayar', 'public');
-    
-    // Update
-    $tagihan->bukti_bayar = $path;
-    $tagihan->status_tagihan = 'Menunggu Verifikasi';
-    
-    // Simpan
-    if ($tagihan->save()) {
-        return redirect('/ortu/tagihan')->with('sukses', 'Bukti berhasil dikirim!');
-    } else {
-        die("Error: Gagal menyimpan ke database!");
-    }
-}
-        public function pengumuman()
+    /**
+     * Upload Bukti Pembayaran
+     */
+    public function prosesBayar(Request $request, $id)
     {
-        // Mengambil semua pengumuman, diurutkan dari yang terbaru
-        $pengumuman = \App\Models\Pengumuman::latest()->get();
-        
+        $request->validate([
+            'bukti' => 'required|image|mimes:jpg,jpeg,png|max:2048'
+        ]);
+
+        $tagihan = DetailTagihan::where('id_detail', $id)->firstOrFail();
+
+        $path = $request->file('bukti')->store('bukti_bayar', 'public');
+
+        $tagihan->update([
+            'bukti_bayar' => $path,
+            'status_tagihan' => 'Menunggu Verifikasi'
+        ]);
+
+        return redirect('/ortu/tagihan')
+            ->with('sukses', 'Bukti pembayaran berhasil dikirim.');
+    }
+
+    /**
+     * Pengumuman
+     */
+    public function pengumuman()
+    {
+        $pengumuman = Pengumuman::latest()->get();
+
         return view('ortu.pengumuman', compact('pengumuman'));
+    }
+
+    /**
+     * Form Ubah Password
+     */
+    public function formPassword()
+    {
+        $siswa = Siswa::findOrFail(session('siswa_id'));
+
+        return view('ortu.password', compact('siswa'));
+    }
+
+    /**
+     * Proses Ubah Password
+     */
+    public function updatePassword(Request $request)
+    {
+        $request->validate([
+            'password_lama' => 'required',
+            'password' => 'required|min:6|confirmed',
+        ], [
+            'password.required' => 'Password baru wajib diisi.',
+            'password.min' => 'Password minimal 6 karakter.',
+            'password.confirmed' => 'Konfirmasi password tidak sama.',
+        ]);
+
+        $siswa = Siswa::findOrFail(session('siswa_id'));
+
+        if (!Hash::check($request->password_lama, $siswa->password)) {
+            return back()->with('gagal', 'Password lama salah.');
+        }
+
+        $siswa->update([
+            'password' => Hash::make($request->password)
+        ]);
+
+        return back()->with('sukses', 'Password berhasil diubah.');
     }
 }

@@ -13,17 +13,17 @@ class Siswa extends Model
     protected $table = 'siswas';
 
     protected $fillable = [
-        'nis',
-        'nama',
-        'kelas',
-        'wali',
-        'kontak',
-        'password',
-        'nama_orangtua',
-        'jenis_kelamin',
-        'tanggal_lahir',
-        'alamat'
-    ];
+    'nis',
+    'nama',
+    'kelas',
+    'wali',
+    'kontak',
+    'nama_orangtua',
+    'jenis_kelamin',
+    'tanggal_lahir',
+    'alamat',
+    'password',
+];
 
     /**
      * Relasi ke Tagihan (One to Many)

@@ -48,11 +48,28 @@
                 </div>
             </div>
 
-            <div class="space-y-1">
-                <h2 class="text-base font-bold text-slate-800">Login Admin</h2>
-                <p class="text-xs text-slate-400 font-medium">Silakan masukkan akun Anda untuk mengakses dashboard
-                    admin.</p>
-            </div>
+            <div class="space-y-3">
+
+    <a href="/"
+    class="inline-flex items-center gap-1.5 text-blue-500 hover:text-blue-700 text-[11px] font-medium transition-colors">
+
+    <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+
+    Kembali ke Beranda
+
+</a>
+
+    <div>
+        <h2 class="text-base font-bold text-slate-800">
+            Login Admin
+        </h2>
+
+        <p class="text-xs text-slate-400 font-medium">
+            Silakan masukkan akun Anda untuk mengakses dashboard admin.
+        </p>
+    </div>
+
+</div>
 
             @if(session('gagal'))
                 <div

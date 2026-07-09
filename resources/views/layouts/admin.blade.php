@@ -58,7 +58,7 @@
                 </a>
             </nav>
 
-      <form action="{{ route('logout') }}" method="POST" class="w-full mt-auto">
+      <form action="{{ route('logout.admin') }}" method="POST" class="w-full mt-auto">
             @csrf
             <button type="submit" class="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition-all w-full text-left cursor-pointer">
                 <i data-lucide="log-out" class="w-5 h-5"></i>

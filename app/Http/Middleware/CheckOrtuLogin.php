@@ -10,10 +10,7 @@ class CheckOrtuLogin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (
-            !session()->has('is_logged_in') ||
-            session('role') != 'orang_tua'
-        ) {
+        if (!session('ortu_login')) {
             return redirect('/login-ortu')
                 ->with('gagal', 'Silakan login terlebih dahulu.');
         }

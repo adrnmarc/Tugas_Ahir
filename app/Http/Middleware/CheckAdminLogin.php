@@ -10,9 +10,9 @@ class CheckAdminLogin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // Hanya membatasi jika bukan admin
-        if (session('role') !== 'admin') {
-            return redirect('/login')->with('gagal', 'Anda tidak memiliki akses admin!');
+        if (!session('admin_login')) {
+            return redirect('/login')
+                ->with('gagal', 'Silakan login sebagai admin.');
         }
 
         return $next($request);

@@ -15,6 +15,7 @@ use App\Http\Controllers\{
 };
 
 use App\Http\Middleware\CheckAdminLogin;
+use App\Http\Middleware\CheckOrtuLogin;
 use App\Models\Pengumuman;
 
 /*
@@ -33,9 +34,11 @@ Route::get('/', function () {
 
 /*
 |--------------------------------------------------------------------------
-| LOGIN
+| AUTHENTICATION
 |--------------------------------------------------------------------------
 */
+
+// ================= ADMIN =================
 
 Route::get('/login', function () {
     return view('admin.login');
@@ -43,8 +46,11 @@ Route::get('/login', function () {
 
 Route::post('/login', [LoginController::class, 'loginAdmin']);
 
-Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+Route::post('/logout-admin', [LoginController::class, 'logoutAdmin'])
+    ->name('logout.admin');
 
+
+// ================= ORANG TUA =================
 
 Route::get('/login-ortu', function () {
     return view('ortu.login');
@@ -52,14 +58,17 @@ Route::get('/login-ortu', function () {
 
 Route::post('/login-ortu', [LoginController::class, 'loginOrtu']);
 
+Route::post('/logout-ortu', [LoginController::class, 'logoutOrtu'])
+    ->name('logout.ortu');
+
 
 /*
 |--------------------------------------------------------------------------
-| RUTE ORANG TUA
+| PORTAL ORANG TUA
 |--------------------------------------------------------------------------
 */
 
-Route::middleware('ortu')->group(function () {
+Route::middleware([CheckOrtuLogin::class])->group(function () {
 
     Route::get('/ortu/dashboard', [OrtuController::class, 'dashboard']);
 
@@ -78,21 +87,28 @@ Route::middleware('ortu')->group(function () {
     Route::get('/ortu/profil', [ProfilAnakController::class, 'index'])
         ->name('ortu.profil');
 
-    // ===== GANTI PASSWORD =====
-    // Route::post('/ortu/ganti-password', [PasswordController::class, 'update'])
-    //     ->name('ortu.password');
+    // Ganti Password
+    /*
+    Route::post('/ortu/ganti-password', [PasswordController::class, 'update'])
+        ->name('ortu.password');
+    */
 });
 
 
 /*
 |--------------------------------------------------------------------------
-| RUTE ADMIN
+| ADMIN PANEL
 |--------------------------------------------------------------------------
 */
 
 Route::middleware([CheckAdminLogin::class])->group(function () {
 
-    // Dashboard
+    /*
+    |--------------------------------------------------------------------------
+    | Dashboard
+    |--------------------------------------------------------------------------
+    */
+
     Route::get('/admin/dashboard', function () {
 
         $totalSiswa = \App\Models\Siswa::count();
@@ -120,6 +136,7 @@ Route::middleware([CheckAdminLogin::class])->group(function () {
         ));
     });
 
+
     /*
     |--------------------------------------------------------------------------
     | DATA SISWA
@@ -131,6 +148,7 @@ Route::middleware([CheckAdminLogin::class])->group(function () {
     Route::put('/admin/siswa/{id}', [SiswaController::class, 'update']);
     Route::delete('/admin/siswa/{id}', [SiswaController::class, 'destroy']);
 
+
     /*
     |--------------------------------------------------------------------------
     | TAGIHAN
@@ -141,6 +159,7 @@ Route::middleware([CheckAdminLogin::class])->group(function () {
     Route::post('/admin/tagihan', [TagihanController::class, 'store']);
     Route::put('/admin/tagihan/{id}', [TagihanController::class, 'update']);
     Route::delete('/admin/tagihan/{id}', [TagihanController::class, 'destroy']);
+
 
     /*
     |--------------------------------------------------------------------------
@@ -157,6 +176,7 @@ Route::middleware([CheckAdminLogin::class])->group(function () {
     Route::post('/admin/pembayaran/tolak/{id}', [PembayaranController::class, 'tolakVerifikasi'])
         ->name('pembayaran.tolak');
 
+
     /*
     |--------------------------------------------------------------------------
     | PENGUMUMAN
@@ -167,6 +187,7 @@ Route::middleware([CheckAdminLogin::class])->group(function () {
     Route::post('/admin/pengumuman', [PengumumanController::class, 'store']);
     Route::delete('/admin/pengumuman/{id}', [PengumumanController::class, 'destroy']);
 
+
     /*
     |--------------------------------------------------------------------------
     | LAPORAN
@@ -174,5 +195,6 @@ Route::middleware([CheckAdminLogin::class])->group(function () {
     */
 
     Route::get('/admin/laporan', [LaporanController::class, 'index']);
+
     Route::get('/admin/laporan/export', [LaporanController::class, 'exportPdf']);
 });
